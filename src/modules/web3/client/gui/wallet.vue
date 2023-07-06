@@ -1,33 +1,32 @@
 <template>
   <div class="web3-wallet">
-    <p>Account</p>
+    <p>Account Information</p>
     <p>
       {{ "Implementation: " }}
       <a
-        href="https://docs.stackup.sh/docs/useropjs-presets#kernel"
+        href="https://docs.ethers.org/v5/"
         target="_blank"
-        >ZeroDev Kernel (via userop.js)</a
-      >
+      >Wallet by ethers.js
+    </a>
     </p>
     <p>
       {{ "Address: " }}
       <a
-        :href="`https://mumbai.polygonscan.com/address/${store.address}`"
+        :href="`https://staging-fast-active-bellatrix.explorer.staging-v3.skalenodes.com/address/${store.address}/transactions`"
         target="_blank"
         >{{ store.address }}</a
       >
     </p>
-    <hr />
+    <br />
     <p v-if="store.loading" style="text-align: center">
       Loading (open console for logs)...
+      <br />
     </p>
-    <button @click="store.execute" :disabled="store.loading">
-      Execute tasks ({{ store.calls.length }} pending)
-    </button>
-    <button @click="store.reset" :disabled="store.loading">Reset tasks</button>
-    <hr />
-    <button @click="copySigner">Copy signer (keep this secret!)</button>
+    <button @click="copySigner">Copy Seed Phrase (Mnemonic - keep this secret!)</button>
+    <br />
     <button @click="openRepo">Go to source code</button>
+    <br />
+    <p>Powered by <a href="https://skale.space">SKALE</a></p>
   </div>
 </template>
 
@@ -47,10 +46,10 @@ export default {
   },
   methods: {
     copySigner() {
-      navigator.clipboard.writeText(store.signer);
+      navigator.clipboard.writeText(store.signer.address);
     },
     openRepo() {
-      window.open("https://github.com/stackup-wallet/branch-rpg");
+      window.open("https://github.com/TheGreatAxios/branch-rpg");
     },
   },
 };

@@ -12,14 +12,14 @@ export class WaterEvent extends RpgEvent {
     const choice = await player.showChoices(
       "Do you want to fetch some water?",
       [
-        { text: "Add it to your task", value: true },
-        { text: "Cancel", value: false },
+        { text: "Yes - the plants are thirsty!", value: true },
+        { text: "No - the plants are ok.", value: false },
       ]
     );
 
     if (choice?.value) {
       player.emit("task", { action: "water" });
-      player.showNotification("Fetch water added to task!");
+      player.showNotification("Fetching Water!");
     }
   }
 }

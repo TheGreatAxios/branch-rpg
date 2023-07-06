@@ -1,16 +1,18 @@
-import { ethers } from "ethers";
-import { Presets, ICall, Client, IClient } from "userop";
+import { Contract, Wallet, ethers } from "ethers";
 import { reactive } from "vue";
-import abi from "./abi.json";
+import {
+  abi,
+  address,
+} from "../../../../contracts/deployments/chaos/BranchRPG.json";
 
 interface IStore {
   loading: boolean;
   score: string;
-  calls: Array<ICall>;
+  transactions: any[];
   address: string;
-  signer: string;
-  init: (signer: string, socket: any) => void;
-  execute: () => void;
+  signer: Wallet;
+  contract: Contract;
+  init: (signer: Wallet, socket: any) => Promise<void>;
   reset: () => void;
 }
 
@@ -18,90 +20,55 @@ interface ITaskData {
   action: "water" | "garden" | "execute";
 }
 
-const BranchRPGAddress = "0x20d8aE1faAFc55c8e2f1e86D02a62C79D9A43a73";
+const BranchRPGAddress = address;
 const BranchRPGContract = new ethers.Contract(
   BranchRPGAddress,
   abi,
   new ethers.providers.JsonRpcProvider(process.env.NODE_RPC_URL)
 );
+
 const BranchRPCBurnFilter = BranchRPGContract.filters.Transfer(
   null,
   ethers.constants.AddressZero
 );
 
 const onScore = (store: IStore) => async () => {
-  store.score = ethers.utils.formatEther(await BranchRPGContract.score());
+  const score = await BranchRPGContract.score();
+  store.score = ethers.utils.formatEther(score);
 };
 
-const onTask = (store: IStore) => (data: ITaskData) => {
+const onTask = (store: IStore) => async (data: ITaskData) => {
   switch (data.action) {
     case "water": {
-      const call: ICall = {
-        to: BranchRPGAddress,
-        value: ethers.constants.Zero,
-        data: BranchRPGContract.interface.encodeFunctionData("mint", [
-          store.address,
-          ethers.constants.WeiPerEther,
-        ]),
-      };
-      store.calls = [...store.calls, call];
+      await store.contract.mint(store.address, ethers.constants.WeiPerEther);
       break;
     }
 
     case "garden": {
-      const call: ICall = {
-        to: BranchRPGAddress,
-        value: ethers.constants.Zero,
-        data: BranchRPGContract.interface.encodeFunctionData("burn", [
-          ethers.constants.WeiPerEther,
-        ]),
-      };
-      store.calls = [...store.calls, call];
+      await store.contract.burn(ethers.constants.WeiPerEther);
       break;
     }
-
-    case "execute": {
-      store.execute();
-      break;
-    }
-
-    default:
-      break;
   }
 };
 
-let account: Presets.Builder.Kernel;
-let client: IClient;
 export const store = reactive<IStore>({
   loading: false,
   score: "0",
-  calls: [],
+  transactions: [],
   address: ethers.constants.AddressZero,
-  signer: ethers.constants.HashZero,
-
+  signer: Wallet.createRandom(),
+  contract: new ethers.Contract(
+    BranchRPGAddress,
+    abi,
+    new ethers.providers.JsonRpcProvider(process.env.NODE_RPC_URL)
+  ),
   async init(signer, socket) {
     try {
       this.loading = true;
-
-      const paymasterMiddleware = process.env.PAYMASTER_RPC_URL
-        ? Presets.Middleware.verifyingPaymaster(process.env.PAYMASTER_RPC_URL, {
-            type: "payg",
-          })
-        : undefined;
-      const [a, c, s] = await Promise.all([
-        Presets.Builder.Kernel.init(
-          new ethers.Wallet(signer),
-          process.env.NODE_RPC_URL || "",
-          { paymasterMiddleware }
-        ),
-        Client.init(process.env.NODE_RPC_URL || ""),
-        BranchRPGContract.score(),
-      ]);
-      account = a;
-      client = c;
-      this.score = ethers.utils.formatEther(s);
-      this.address = account.getSender();
+      this.address = signer.address;
       this.signer = signer;
+      this.contract = new ethers.Contract(BranchRPGAddress, abi, signer);
+      this.score = ethers.utils.formatEther(await this.contract.score());
 
       BranchRPGContract.on(BranchRPCBurnFilter, onScore(this));
       socket.on("task", onTask(this));
@@ -109,49 +76,6 @@ export const store = reactive<IStore>({
       console.error(error);
     } finally {
       this.loading = false;
-    }
-  },
-  async execute() {
-    if (this.calls.length === 0) {
-      window.alert(
-        "No tasks to execute. Try interacting with the bucket and garden..."
-      );
-      return;
-    } else {
-      try {
-        this.loading = true;
-        console.log("Generating UserOperation...");
-        const res = await client.sendUserOperation(
-          account.executeBatch(this.calls),
-          {
-            onBuild: (op) => console.log("Signed UserOperation:", op),
-          }
-        );
-        console.log(`UserOpHash: ${res.userOpHash}`);
-
-        console.log("Waiting for transaction...");
-        const ev = await res.wait();
-        if (ev) {
-          console.log(`Transaction hash: ${ev.transactionHash}`);
-          console.log(
-            `https://mumbai.polygonscan.com/tx/${ev.transactionHash}`
-          );
-        }
-      } catch (error: any) {
-        const data = error.body ? JSON.parse(error.body) : undefined;
-        if (data?.error?.code == -32521) {
-          console.log(
-            "Execution error. Your tasks are atomic, make sure you have enough water for each time to tend the garden..."
-          );
-          console.error(data.error);
-        } else if (data.error) {
-          console.error(data.error);
-        } else {
-          console.error(error);
-        }
-      } finally {
-        this.reset();
-      }
     }
   },
   reset() {

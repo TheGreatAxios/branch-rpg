@@ -19,13 +19,13 @@ export class InfoEvent extends RpgEvent {
       talkWith: this,
     });
     await player.showText(
-      "When you're ready, execute your actions by talking to the scarecrow or through the account menu.",
+      "The game will save your state automatically on the SKALE Chaos Testnet blockchain whenever you do either action.",
       {
         talkWith: this,
       }
     );
     await player.showText(
-      "Everything is on-chain. But thanks to ✨account abstraction✨ you'll hardly notice the blockchain at all.",
+      "Everything is on-chain. But thanks to ✨SKALE✨ you will NEVER notice the blockchain at all.",
       {
         talkWith: this,
       }

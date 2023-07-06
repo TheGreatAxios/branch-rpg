@@ -32,6 +32,7 @@
     "@rpgjs/standalone": "^3.3.0",
     "@rpgjs/testing": "^3.3.0",
     "@rpgjs/types": "^3.3.0",
+    "@skaleproject/pow-ethers": "^0.3.3",
     "dotenv": "^16.3.1",
     "ethers": "^5.7.2",
     "express": "4.17.1",

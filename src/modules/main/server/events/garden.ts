@@ -12,14 +12,14 @@ export class GardenEvent extends RpgEvent {
     const choice = await player.showChoices(
       "Do you want to water the garden?",
       [
-        { text: "Add it to your task", value: true },
-        { text: "Cancel", value: false },
+        { text: "Water the garden!", value: true },
+        { text: "I'll water it later.", value: false },
       ]
     );
 
     if (choice?.value) {
       player.emit("task", { action: "garden" });
-      player.showNotification("Water garden added to task!");
+      player.showNotification("Watering the garden!!");
     }
   }
 }
